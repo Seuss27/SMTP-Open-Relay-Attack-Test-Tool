@@ -1,11 +1,15 @@
 import socket
 import smtplib
+import configparser
+
+config = configparser.ConfigParser()
+config.read('OpenRelay.ini')
 
 IP = input("Enter IP address: ")
 Port = input("Enter Port Number: ")
 
-X = input("From: ")
-Y = input("TO: ")
+to_address = config['DEFAULT']['ToAddress']
+from_address = config['DEFAULT']['FromAddress']
 
 
 def smtp_connect(ip, port):
@@ -21,17 +25,24 @@ def is_open(answer):
         return True
 
 
+def check_success(answer):
+    if '250' in str(answer):
+        return True
+    else:
+        return False
+
+
 def test_relay(ip, port):
-    smtpserver = smtplib.SMTP(IP, int(Port))
-    r = smtpserver.docmd("Mail From:", X)
-    a = str(r)
-    if "250" in a:
-        r = smtpserver.docmd("RCPT TO:", Y)
-        a = str(r)
-        if "250" in a:
-            return True
-        else:
-            return False
+    smtpserver = smtplib.SMTP(ip, int(port))
+    r = smtpserver.docmd("Mail From:", from_address)
+    #  Check for the 250 return value from the server from
+    if check_success(r):
+        r = smtpserver.docmd("RCPT TO:", to_address)
+        #  return the response check from the to
+        return check_success(r)
+    else:
+        # If it gives another value it is not vulnerable
+        return False
 
 
 ans = smtp_connect(IP, Port)
